@@ -1,10 +1,15 @@
 package upload_controller
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+
 	"github.com/gorilla/websocket"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	"github.com/matheuswww/mystream/src/logger"
@@ -14,6 +19,16 @@ var upgrader = websocket.Upgrader {
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+var path = ""
+
+func init() {
+	v,err := filepath.Abs("upload")
+	if err != nil {
+		log.Fatal(err)
+	}
+	path = v
 }
 
 func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +53,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func saveChunk(uploadFile upload_request.UploadFile) {
-	dir := fmt.Sprintf("/home/virus/mystream/upload/%s/temp", uploadFile.FileHash)
+	dir := fmt.Sprintf("%s/%s/temp", path, uploadFile.FileHash)
 	if _,err := os.Stat(dir); os.IsNotExist(err) {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -50,6 +65,11 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 		return
 	}
 	for _,chunk := range uploadFile.Chunks {
+		hash := sha256.Sum256(chunk.Data) 
+		if hex.EncodeToString(hash[:]) != chunk.Hash {
+			logger.Error("chunk hash is different")
+			return
+		}
 		filePath := fmt.Sprintf("%s/chunk%d", dir, chunk.Chunk)
 		file,err := os.Create(filePath)
 		if err != nil {
@@ -69,7 +89,7 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 }
 
 func combineChunk(totalChunk int, fileName, fileHash string) {
-	filePath := fmt.Sprintf("/home/virus/mystream/upload/%s/%s", fileHash, fileName)
+	filePath := fmt.Sprintf("%s/%s/%s", path, fileHash, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		logger.Error(err)
@@ -77,7 +97,7 @@ func combineChunk(totalChunk int, fileName, fileHash string) {
 	}
 	defer file.Close()
 
-	dir := fmt.Sprintf("/home/virus/mystream/upload/%s/temp", fileHash)
+	dir := fmt.Sprintf("%s/%s/temp", path, fileHash)
 	for i := 0; i < totalChunk; i++ {
 		chunkFileName := fmt.Sprintf("/%s/chunk%d", dir, i)
 		chukData, err := os.ReadFile(chunkFileName)
@@ -91,5 +111,6 @@ func combineChunk(totalChunk int, fileName, fileHash string) {
 			return
 		}
 	}
-	return
+
+	os.RemoveAll(dir)
 }

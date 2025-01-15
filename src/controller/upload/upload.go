@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,25 +16,13 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-var upgrader = websocket.Upgrader {
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-var conn *websocket.Conn
-
-var path = ""
-
-func init() {
-	v,err := filepath.Abs("upload")
-	if err != nil {
-		log.Fatal(err)
-	}
-	path = v
-}
-
 func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
+	var upgrader = websocket.Upgrader {
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	var conn *websocket.Conn
 	var err error
 	conn, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -45,28 +32,32 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
-			return 
+			conn.Close()
+			break 
 		}
 		var uploadRequest upload_request.UploadFile
 		if err := json.Unmarshal(msg, &uploadRequest); err != nil {
 			logger.Error(err)
 			restErr := rest_err.NewBadRequestError("campos inválidos")
 			upload_controller_util.SendWsRes(restErr, conn)
-			return
+			conn.Close()
+			break
 		}
-		go saveChunk(uploadRequest)
-		res := &struct{ Message string }{
-			Message: "sucesso",
-		}
-		upload_controller_util.SendWsRes(res, conn)
-		break
+		go saveChunk(uploadRequest, conn)
 	}
 }
 
-func saveChunk(uploadFile upload_request.UploadFile) {
+func saveChunk(uploadFile upload_request.UploadFile, conn *websocket.Conn) {
+	path,err := filepath.Abs("upload")
+	if err != nil {
+		logger.Error(err)
+		restErr := rest_err.NewInternalServerError("server error")
+		upload_controller_util.SendWsRes(restErr, conn)
+		conn.Close()
+		return
+	}
 	dir := fmt.Sprintf("%s/%s/temp", path, uploadFile.FileHash)
 	if _,err := os.Stat(dir); os.IsNotExist(err) {
 		err := os.MkdirAll(dir, 0755)
@@ -74,12 +65,14 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 	} else if err != nil {
 		logger.Error(err)
 		restErr := rest_err.NewInternalServerError("server error")
 		upload_controller_util.SendWsRes(restErr, conn)
+		conn.Close()
 		return
 	}
 	for _,chunk := range uploadFile.Chunks {
@@ -88,6 +81,7 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 			logger.Error("chunk hash is different")
 			restErr := rest_err.NewBadRequestError("chunck hash is different")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 		filePath := fmt.Sprintf("%s/chunk%d", dir, chunk.Chunk)
@@ -96,6 +90,7 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 		defer file.Close()
@@ -104,21 +99,31 @@ func saveChunk(uploadFile upload_request.UploadFile) {
 			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 		if chunk.Chunk == uploadFile.TotalChunk - 1 {
-			combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash)
+			combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash, conn)
 		}
 	}
 }
 
-func combineChunk(totalChunk int, fileName, fileHash string) {
+func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Conn) {
+	path,err := filepath.Abs("upload")
+	if err != nil {
+		logger.Error(err)
+		restErr := rest_err.NewInternalServerError("server error")
+		upload_controller_util.SendWsRes(restErr, conn)
+		conn.Close()
+		return
+	}
 	filePath := fmt.Sprintf("%s/%s/%s", path, fileHash, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		logger.Error(err)
 		restErr := rest_err.NewInternalServerError("server error")
 		upload_controller_util.SendWsRes(restErr, conn)
+		conn.Close()
 		return
 	}
 	defer file.Close()
@@ -131,6 +136,7 @@ func combineChunk(totalChunk int, fileName, fileHash string) {
 			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 		_, err = file.Write(chukData)
@@ -138,10 +144,14 @@ func combineChunk(totalChunk int, fileName, fileHash string) {
 			logger.Error(err)
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
+			conn.Close()
 			return
 		}
 	}
-
+	res := &struct{ Message string }{
+		Message: "sucesso",
+	}
+	upload_controller_util.SendWsRes(res, conn)
 	err = os.RemoveAll(dir)
 	if err != nil {
 		logger.Error(err)

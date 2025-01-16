@@ -1,13 +1,8 @@
 package upload_controller
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/gorilla/websocket"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
@@ -45,115 +40,6 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 			conn.Close()
 			break
 		}
-		go saveChunk(uploadRequest, conn)
-	}
-}
-
-func saveChunk(uploadFile upload_request.UploadFile, conn *websocket.Conn) {
-	path,err := filepath.Abs("upload")
-	if err != nil {
-		logger.Error(err)
-		restErr := rest_err.NewInternalServerError("server error")
-		upload_controller_util.SendWsRes(restErr, conn)
-		conn.Close()
-		return
-	}
-	dir := fmt.Sprintf("%s/%s/temp", path, uploadFile.FileHash)
-	if _,err := os.Stat(dir); os.IsNotExist(err) {
-		err := os.MkdirAll(dir, 0755)
-		if err != nil {
-			logger.Error(err)
-			restErr := rest_err.NewInternalServerError("server error")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-	} else if err != nil {
-		logger.Error(err)
-		restErr := rest_err.NewInternalServerError("server error")
-		upload_controller_util.SendWsRes(restErr, conn)
-		conn.Close()
-		return
-	}
-	for _,chunk := range uploadFile.Chunks {
-		hash := sha256.Sum256(chunk.Data) 
-		if hex.EncodeToString(hash[:]) != chunk.Hash {
-			logger.Error("chunk hash is different")
-			restErr := rest_err.NewBadRequestError("chunck hash is different")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-		filePath := fmt.Sprintf("%s/chunk%d", dir, chunk.Chunk)
-		file,err := os.Create(filePath)
-		if err != nil {
-			logger.Error(err)
-			restErr := rest_err.NewInternalServerError("server error")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-		defer file.Close()
-		_,err = file.Write(chunk.Data)
-		if err != nil {
-			logger.Error(err)
-			restErr := rest_err.NewInternalServerError("server error")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-		if chunk.Chunk == uploadFile.TotalChunk - 1 {
-			combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash, conn)
-		}
-	}
-}
-
-func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Conn) {
-	path,err := filepath.Abs("upload")
-	if err != nil {
-		logger.Error(err)
-		restErr := rest_err.NewInternalServerError("server error")
-		upload_controller_util.SendWsRes(restErr, conn)
-		conn.Close()
-		return
-	}
-	filePath := fmt.Sprintf("%s/%s/%s", path, fileHash, fileName)
-	file, err := os.Create(filePath)
-	if err != nil {
-		logger.Error(err)
-		restErr := rest_err.NewInternalServerError("server error")
-		upload_controller_util.SendWsRes(restErr, conn)
-		conn.Close()
-		return
-	}
-	defer file.Close()
-
-	dir := fmt.Sprintf("%s/%s/temp", path, fileHash)
-	for i := 0; i < totalChunk; i++ {
-		chunkFileName := fmt.Sprintf("/%s/chunk%d", dir, i)
-		chukData, err := os.ReadFile(chunkFileName)
-		if err != nil {
-			logger.Error(err)
-			restErr := rest_err.NewInternalServerError("server error")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-		_, err = file.Write(chukData)
-		if err != nil {
-			logger.Error(err)
-			restErr := rest_err.NewInternalServerError("server error")
-			upload_controller_util.SendWsRes(restErr, conn)
-			conn.Close()
-			return
-		}
-	}
-	res := &struct{ Message string }{
-		Message: "sucesso",
-	}
-	upload_controller_util.SendWsRes(res, conn)
-	err = os.RemoveAll(dir)
-	if err != nil {
-		logger.Error(err)
+		go uc.uploadService.UploadFile(conn, uploadRequest)
 	}
 }

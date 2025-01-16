@@ -11,7 +11,8 @@ import (
 
 func InitUploadRoutes(r *router.Router, db *sql.DB) {
 	controller := getUploadController(db)
-	r.Route("GET", "/", controller.UploadFile)
+	r.Route("GET", "/upload/uploadFile", controller.UploadFile)
+	r.Route("GET", "/upload/getLastChunk", controller.GetLastChunk)
 }
 
 func getUploadController(db *sql.DB) upload_controller.UploadController {

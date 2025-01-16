@@ -18,4 +18,5 @@ type uploadController struct {
 
 type UploadController interface {
 	UploadFile(w http.ResponseWriter, r *http.Request)
+	GetLastChunk(w http.ResponseWriter, r *http.Request)
 }

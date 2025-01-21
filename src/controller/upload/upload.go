@@ -2,7 +2,9 @@ package upload_controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
@@ -12,6 +14,7 @@ import (
 )
 
 func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
+	logger.Log("Init UploadFile Controller")
 	var upgrader = websocket.Upgrader {
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -19,6 +22,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	var conn *websocket.Conn
 	var err error
+	var wg sync.WaitGroup
 	conn, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Error(err)
@@ -27,6 +31,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
+			logger.Error(fmt.Sprintf("Error trying ReadMessage: %v", err))
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
@@ -34,12 +39,17 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		var uploadRequest upload_request.UploadFile
 		if err := json.Unmarshal(msg, &uploadRequest); err != nil {
-			logger.Error(err)
+			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
 			restErr := rest_err.NewBadRequestError("campos inválidos")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			break
 		}
-		go uc.uploadService.UploadFile(conn, uploadRequest)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			uc.uploadService.UploadFile(conn, uploadRequest)
+		}()
 	}
+	wg.Wait()
 }

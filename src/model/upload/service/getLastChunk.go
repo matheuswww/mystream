@@ -14,8 +14,10 @@ import (
 
 
 func (us *uploadService) GetLastChunk(getLastChunkRequest upload_request.GetLastChunk) (string, *rest_err.RestErr) {
+	logger.Log("Init GetLastChunk")
 	path,err := filepath.Abs("upload")
 	if err != nil {
+		logger.Error(fmt.Sprintf("Error trying get absolute path for upload: %v", err))
 		restErr := rest_err.NewInternalServerError("server error")
 		return "", restErr
 	}
@@ -59,11 +61,13 @@ func getLastModifiedFile(dir string) (string, error) {
 
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			logger.Error(fmt.Sprintf("Error trying WalkDir: %v", err))
 			return err
 		}
 		if !d.IsDir() {
 			info, err := d.Info()
 			if err != nil {
+				logger.Error(fmt.Sprintf("Error trying checking if is dir: %v", err))
 				return err
 			}
 			modTime := info.ModTime()
@@ -85,6 +89,7 @@ func deleteLastChunk(dir string) (string,error) {
 	path := fmt.Sprintf("%s/%s", dir, fileName)
 	err = os.Remove(path)
 	if err != nil {
+		logger.Error(fmt.Sprintf("Error trying RemovePath: %v", err))
 		return "",err
 	}
 	return fileName,nil

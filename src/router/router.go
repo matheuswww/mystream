@@ -15,6 +15,7 @@ type RouterEntry struct {
 
 type Router struct {
 	routes []RouterEntry
+	middleware http.HandlerFunc
 }
 
 func (rtr *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,10 +31,17 @@ func (rtr *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
      continue
     }
     ctx := context.WithValue(r.Context(), "params", params)
+		if rtr.middleware != nil {
+			rtr.middleware.ServeHTTP(w, r.WithContext(ctx))
+		}
     e.HandlerFunc.ServeHTTP(w, r.WithContext(ctx))
     return
 	}
 	http.NotFound(w, r)
+}
+
+func (rtr *Router) Middleware(handlerFunc http.HandlerFunc) {
+	rtr.middleware = handlerFunc
 }
 
 func (rtr *Router) Route(method, path string, handlerFunc http.HandlerFunc) {

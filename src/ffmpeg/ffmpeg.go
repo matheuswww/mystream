@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-	"sync/atomic"
-
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"sync"
-
+	"sync/atomic"
 	"github.com/gorilla/websocket"
 	upload_controller_util "github.com/matheuswww/mystream/src/controller/upload/util"
 	"github.com/matheuswww/mystream/src/logger"
@@ -103,12 +101,16 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 		logger.Error(fmt.Sprintf("Error trying Wait cmd: %v", err))
 		return err
 	}
-	var frame int64
+
+	var frame, speedCounter, fpsCounter int64
+	var fps, speed float64
+	var allFps, allSpeed float64
 	var newFrame chan bool = make(chan bool)
+	var mu sync.Mutex
 	go func ()  {
 		newFrame <- true
 	}()
-	for _, res := range resolutions {
+	for index, res := range resolutions {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -125,7 +127,7 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 			cmd := exec.Command(
 				"bash", "-c",
 				fmt.Sprintf(
-					"ffmpeg -loglevel error -i \"%s\" -c:v libx264 -b:v %s -vf scale=%d:%d -c:a aac -b:a %s -preset ultrafast -crf 28 -hls_time 10 -hls_list_size 0 -progress pipe:1 -hls_segment_filename \"%s/segment_%dx%d_%%03d.ts\" \"%s/video_%dx%d.m3u8\" | grep 'frame='",
+					"ffmpeg -loglevel error -i \"%s\" -c:v libx264 -b:v %s -vf scale=%d:%d -c:a aac -b:a %s -preset ultrafast -crf 28 -hls_time 10 -hls_list_size 0 -progress pipe:1 -hls_segment_filename \"%s/segment_%dx%d_%%03d.ts\" \"%s/video_%dx%d.m3u8\"",
 					filePath,
 					res.videoBitrate,
 					res.width,
@@ -158,21 +160,59 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 		}
 
 		scanner := bufio.NewScanner(outPipe)
-		var count int64
+		var lastFrame int64
 		for scanner.Scan() {
-			f := scanner.Text()
-			f = strings.Split(f, "=")[1]
-			num, err := strconv.Atoi(f)
-			if err != nil {
-				logger.Error(fmt.Sprintf("Error trying Atoi: %v", err))
-				restErr := rest_err.NewInternalServerError("server error")
-				upload_controller_util.SendWsRes(restErr, conn)
-				conn.Close()
-				return
+			str := scanner.Text()
+			if strings.HasPrefix(str, "frame=") {
+				f := strings.Split(str, "=")[1]
+				num, err := strconv.Atoi(f)
+				if err != nil {
+					logger.Error(fmt.Sprintf("Error trying Atoi: %v", err))
+					continue
+				}
+				atomic.AddInt64(&frame, (int64(num) - lastFrame))
+				lastFrame = int64(num)
+				newFrame <- true
 			}
-			atomic.AddInt64(&frame, (int64(num) - count))
-			count = int64(num)
-			newFrame <- true
+			if strings.HasPrefix(str, "speed=") && strings.Contains(str, "x") {
+				str = strings.ReplaceAll(str, " ", "")
+				s := strings.Replace(strings.Split(str, "=")[1], "x", "", 1);
+				num, err := strconv.ParseFloat(s, 64)
+				if err != nil {
+					logger.Error(fmt.Sprintf("Error trying ParseFloat: %v", err))
+					continue
+				}
+				mu.Lock()
+				if speedCounter == int64(index) {
+					speed += num
+					speedCounter++
+				}
+				if speedCounter == int64(numberResolutions - 1) {
+					allSpeed = speed
+					speedCounter = 0
+					speed = 0
+				}
+				mu.Unlock()
+			}
+			if strings.HasPrefix(str, "fps=") {
+				f := strings.Split(str, "=")[1]
+				num, err := strconv.ParseFloat(f, 64)
+				if err != nil {
+					logger.Error(fmt.Sprintf("Error trying ParseFloat: %v", err))
+					continue
+				}
+				mu.Lock()
+				if fpsCounter == int64(index) {
+					fps += num
+					fpsCounter++
+				}
+				if fpsCounter == int64(numberResolutions - 1) {
+					allFps = fps
+					fpsCounter = 0
+					fps = 0
+				}
+				mu.Unlock()
+			}
 		}
 		
 		if err := cmd.Wait(); err != nil {
@@ -190,8 +230,21 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 			case v := <-newFrame:
 			if v {
 				if frame != 0 {
-					percentage = (float64(frame)/(float64(int64(totalFrames))*float64(int64(numberResolutions))))*100
-					upload_controller_util.SendWsRes(fmt.Sprintf("%.2f%%", (float64(frame)/(float64(int64(totalFrames))*float64(int64(numberResolutions))))*100), conn)
+					percentage = (float64(frame)/(float64(totalFrames)*float64(numberResolutions)))*100
+					var timeExpected float64
+					if allSpeed != 0 && allFps != 0 {
+						timeExpected = ((float64(totalFrames*numberResolutions) - float64(frame))/allFps) * 1 / allSpeed
+					} else {
+						timeExpected = 0
+					}
+					var formatedTimeExpected string
+					if timeExpected > 60 {
+						formatedTimeExpected = fmt.Sprintf("%.2f min", timeExpected / 60)
+					} else {
+						formatedTimeExpected = fmt.Sprintf("%.2f seg", timeExpected)
+					}
+					res := struct { Percentage string; TimeExpected string }{Percentage: fmt.Sprintf("%.2f%%", percentage), TimeExpected: formatedTimeExpected}
+					upload_controller_util.SendWsRes(res , conn)
 					if percentage >= 100 {
 						percentage++
 					}

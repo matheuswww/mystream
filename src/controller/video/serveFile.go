@@ -11,7 +11,6 @@ import (
 )
 
 func (vc *fileController) ServeFile(w http.ResponseWriter, r *http.Request) {
-	logger.Log("Init ServeFile")
 	absPath, err := filepath.Abs("upload")
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying get absolute path for upload: %v", err))

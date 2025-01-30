@@ -1,4 +1,4 @@
-package upload_controller_util
+package ffmpeg
 
 import (
 	"fmt"
@@ -7,11 +7,17 @@ import (
 	"github.com/matheuswww/mystream/src/logger"
 )
 
-func SendWsRes(msg any, conn *websocket.Conn) {
-	err := conn.WriteJSON(msg)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error trying SendWsRes: %v", err))
+func sendWsRes(msg any, fileHash string) {
+	conn := conns[fileHash]
+	if conn == nil {
 		return
 	}
-	return
+	err := conn.WriteJSON(msg)
+	if err != nil {
+		if websocket.IsCloseError(err) {
+			conns[fileHash] = nil
+			return
+		}
+		logger.Error(fmt.Sprintf("Error trying SendWsRes: %v", err))
+	}
 }

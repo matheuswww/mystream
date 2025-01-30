@@ -104,7 +104,7 @@ func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Con
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
-			return
+			break
 		}
 		_, err = file.Write(chukData)
 		if err != nil {
@@ -112,7 +112,7 @@ func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Con
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
-			return
+			break
 		}
 	}
 	res := struct{ Message string }{

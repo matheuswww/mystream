@@ -19,7 +19,7 @@ func (uc *uploadController) GetLastChunk(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer r.Body.Close() 
-	var getLastChunkRequest upload_request.GetLastChunk
+	var getLastChunkRequest upload_request.FileHash
 	if err := json.Unmarshal(body, &getLastChunkRequest); err != nil {
 		restErr := rest_err.NewBadRequestError("campos inválidos")
 		router.SendResponse(w, restErr, restErr.Code)

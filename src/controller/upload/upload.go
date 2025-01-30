@@ -25,7 +25,11 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	conn, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.Error(err)
+		logger.Error(fmt.Sprintf("Error trying Upgrade: %v", err))
+		restErr := rest_err.NewInternalServerError("server error")
+		upload_controller_util.SendWsRes(restErr, conn)
+		conn.Close()
+		return
 	}
 	defer conn.Close()
 	for {

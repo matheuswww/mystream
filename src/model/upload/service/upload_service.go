@@ -20,4 +20,5 @@ type uploadService struct {
 type UploadService interface {
 	UploadFile(conn *websocket.Conn, uploadFile upload_request.UploadFile)
 	GetLastChunk(getLastChunkRequest upload_request.FileHash) (string, *rest_err.RestErr)
+	GetFfmpegProgress(fileHash string, conn *websocket.Conn)
 }

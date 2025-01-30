@@ -29,6 +29,7 @@ func UpdateConn(fileHash string, conn *websocket.Conn) error {
 }
 
 func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) error {
+	conns[fileHash] = conn
 	chunks, frames, frameRate, duration, err := getInfos(fileHash, filePath, conn)
 	if err != nil {
 		return err
@@ -39,7 +40,7 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 	var i int
 	var processing int = numberResolutions
 	var frame, speedCounter, fpsCounter int64
-	var fps, speed float64
+	var fps, speed, percentage float64
 	var allFps, allSpeed float64
 	var newFrame chan bool = make(chan bool)
 	var mu sync.Mutex
@@ -56,7 +57,11 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 				logger.Error(fmt.Sprintf("Error trying MkdirAll: %v", err))
 				restErr := rest_err.NewInternalServerError("server error")
 				sendWsRes(restErr, fileHash)
-				conn.Close()
+				close(newFrame)
+				if _,f := conns[fileHash]; f {
+					conns[fileHash].Close()
+				}
+				delete(conns, fileHash)
 				return
 			}
 			var chunkStart int
@@ -67,6 +72,10 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 					mu.Lock()
 					processing = processing - 1
 					frames = frames - (totalFrames/numberResolutions)
+					if processing == 0 {
+						percentage = 101
+						newFrame <- false
+					}
 					mu.Unlock()
 					return
 				}
@@ -78,7 +87,11 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 					if err != nil {
 						restErr := rest_err.NewInternalServerError("server error")
 						sendWsRes(restErr, fileHash)
-						conn.Close()
+						close(newFrame)
+						if _,f := conns[fileHash]; f {
+							conns[fileHash].Close()
+						}
+						delete(conns, fileHash)
 						return
 					}
 				}
@@ -111,7 +124,11 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 			logger.Error(fmt.Sprintf("Error trying StdoutPipe: %v", err))
 			restErr := rest_err.NewInternalServerError("server error")
 			sendWsRes(restErr, fileHash)
-			conn.Close()
+			close(newFrame)
+			if _,f := conns[fileHash]; f {
+				conns[fileHash].Close()
+			}
+			delete(conns, fileHash)
 			return
 		}
 		
@@ -119,7 +136,11 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 			logger.Error(fmt.Sprintf("Error trying Start cmd: %v", err))
 			restErr := rest_err.NewInternalServerError("server error")
 			sendWsRes(restErr, fileHash)
-			conn.Close()
+			close(newFrame)
+			if _,f := conns[fileHash]; f {
+				conns[fileHash].Close()
+			}
+			delete(conns, fileHash)
 			return
 		}
 
@@ -187,20 +208,24 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 			logger.Error(fmt.Sprintf("Error trying Wait cmd: %v", err))
 			restErr := rest_err.NewInternalServerError("server error")
 			sendWsRes(restErr, fileHash)
-			conn.Close()
+			close(newFrame)
+			if _,f := conns[fileHash]; f {
+				conns[fileHash].Close()
+			}
+			delete(conns, fileHash)
 			return
 		}
 		}()
 	}
-	var percentage float64
+
 	for percentage <= 100 {
 		select {
 			case v := <-newFrame:
 				sendProgress(v, frames, frame, allSpeed, allFps, fileHash, &percentage)
 		}
 	}
+
 	wg.Wait()
-	delete(conns, fileHash)
 	close(newFrame)
 	err = generateM3U8(fmt.Sprintf("%s/%s", uploadPath, fileHash), fileHash)
 	if err != nil {
@@ -210,6 +235,12 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying Remove: %v", err))
 	}
+	res := struct{ Message string }{
+		Message: "sucesso",
+	}
+	sendWsRes(res, fileHash)
+	conn.Close()
+	delete(conns, fileHash)
 	return nil
 }
 

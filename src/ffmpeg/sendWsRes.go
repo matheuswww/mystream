@@ -14,7 +14,7 @@ func sendWsRes(msg any, fileHash string) {
 	}
 	err := conn.WriteJSON(msg)
 	if err != nil {
-		if websocket.IsCloseError(err) {
+		if websocket.ErrCloseSent == err || websocket.IsCloseError(err) {
 			conns[fileHash] = nil
 			return
 		}

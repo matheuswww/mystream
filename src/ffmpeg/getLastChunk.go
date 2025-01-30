@@ -21,10 +21,7 @@ func getLastChunk(fileHash string) (map[int]int, error) {
 	chunks := make(map[int]int)
 	for _, v := range resolutions {
 		filePath := filepath.Join(folderPath, fmt.Sprintf("%dp", v.height))
-		
 		var num int
-
-
 		err = filepath.Walk(filePath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -39,13 +36,12 @@ func getLastChunk(fileHash string) (map[int]int, error) {
 				}
 				if n > num {
 					num = n
-	
 				}
 			}
 			return nil
 		})
 
-		chunks[v.height] = num - 1
+		chunks[v.height] = num
 	}
 	if err != nil {
 		return nil, err

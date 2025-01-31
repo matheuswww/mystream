@@ -17,8 +17,14 @@ import (
 )
 
 var conns map[string]*websocket.Conn = make(map[string]*websocket.Conn)
+var beingProcessed map[string]bool = make(map[string]bool)
 
 var chunkTime = 10
+
+func GetBeingProcessed(fileHash string) bool {
+	_,f := beingProcessed[fileHash]
+	return f
+}
 
 func UpdateConn(fileHash string, conn *websocket.Conn) error {
 	if _,f := conns[fileHash]; f {
@@ -28,8 +34,14 @@ func UpdateConn(fileHash string, conn *websocket.Conn) error {
 	return errors.New("file not found")
 }
 
+func removeBeingProcessed(filehash string) {
+	delete(beingProcessed, filehash)
+}
+
 func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) error {
+	defer removeBeingProcessed(fileHash)
 	conns[fileHash] = conn
+	beingProcessed[fileHash] = true
 	chunks, frames, frameRate, duration, err := getInfos(fileHash, filePath, conn)
 	if err != nil {
 		return err

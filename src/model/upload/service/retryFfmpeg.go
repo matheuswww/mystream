@@ -12,6 +12,9 @@ import (
 )
 
 func (us *uploadService) RetryFfmpeg(fileHash string) *rest_err.RestErr {
+	if ffmpeg.GetBeingProcessed(fileHash) {
+		return rest_err.NewBadRequestError("video is already being processed")
+	}
 	path,err := filepath.Abs("upload")
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying get absolute path for upload: %v", err))

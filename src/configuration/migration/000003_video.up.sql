@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS video (
+  id VARCHAR(36),
+  title VARCHAR(255) NOT NULL,
+  description VARCHAR(255)
+);

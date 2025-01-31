@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/joho/godotenv"
+	db "github.com/matheuswww/mystream/src/configuration/sql"
 	"github.com/matheuswww/mystream/src/router"
 	"github.com/matheuswww/mystream/src/routes"
 )
@@ -13,10 +14,10 @@ import (
 func main() {
 	fmt.Println("App Running!!!")
 	initEnv()
-
+	db := db.NewSql()
 	r := &router.Router{}
 	r.Middleware(middleware)
-	routes.InitRoutes(r, nil)
+	routes.InitRoutes(r, db)
 	http.ListenAndServe(":8080", r)
 }
 

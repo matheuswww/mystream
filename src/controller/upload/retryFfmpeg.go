@@ -1,8 +1,6 @@
 package upload_controller
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
@@ -13,16 +11,8 @@ import (
 
 func (uc *uploadController) RetryFfmpeg(w http.ResponseWriter, r *http.Request) {
 	logger.Log("Init RetryFfmpeg")
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.Error(err)
-		restErr := rest_err.NewInternalServerError("server error")
-		router.SendResponse(w, restErr, restErr.Code)
-		return
-	}
-	defer r.Body.Close() 
 	var retryFfmpeg upload_request.FileHash
-	if err := json.Unmarshal(body, &retryFfmpeg); err != nil {
+	if err := router.BindJson(r.Body, &retryFfmpeg); err != nil {
 		restErr := rest_err.NewBadRequestError("invalid fields")
 		router.SendResponse(w, restErr, restErr.Code)
 		return

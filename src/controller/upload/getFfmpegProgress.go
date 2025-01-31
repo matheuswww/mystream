@@ -1,7 +1,7 @@
 package upload_controller
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"net/http"
 	"sync"
@@ -11,6 +11,7 @@ import (
 	upload_controller_util "github.com/matheuswww/mystream/src/controller/upload/util"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
+	"github.com/matheuswww/mystream/src/router"
 )
 
 func (uc *uploadController) GetFfmpegProgress(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +40,7 @@ func (uc *uploadController) GetFfmpegProgress(w http.ResponseWriter, r *http.Req
 			break 
 		}
 		var fileHash upload_request.FileHash
-		if err := json.Unmarshal(msg, &fileHash); err != nil {
+		if err := router.BindJson(bytes.NewReader(msg), &fileHash); err != nil {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
 			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)

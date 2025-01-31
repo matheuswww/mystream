@@ -1,20 +1,41 @@
 package router
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 )
 
 type RouterEntry struct {
-	Path *regexp.Regexp
-	Method string
+	Path      *regexp.Regexp
+	Method    string
 	HandlerFunc http.HandlerFunc
 }
 
+type ResponseWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (rw *ResponseWriter) WriteHeader(code int) {
+	rw.wroteHeader = true
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("response writer does not support hijacking")
+	}
+	return hijacker.Hijack()
+}
+
 type Router struct {
-	routes []RouterEntry
+	routes    []RouterEntry
 	middleware http.HandlerFunc
 }
 
@@ -24,18 +45,24 @@ func (rtr *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Println("ERROR:", r)
 			http.Error(w, "server error", http.StatusInternalServerError)
 		}
-  }()
+	}()
+
+	rw := &ResponseWriter{ResponseWriter: w}
+
 	for _, e := range rtr.routes {
-    params := e.Match(r)
-    if params == nil {
-     continue
-    }
-    ctx := context.WithValue(r.Context(), "params", params)
-		if rtr.middleware != nil {
-			rtr.middleware.ServeHTTP(w, r.WithContext(ctx))
+		params := e.Match(r)
+		if params == nil {
+			continue
 		}
-    e.HandlerFunc.ServeHTTP(w, r.WithContext(ctx))
-    return
+		ctx := context.WithValue(r.Context(), "params", params)
+		if rtr.middleware != nil {
+			rtr.middleware.ServeHTTP(rw, r.WithContext(ctx))
+			if rw.wroteHeader {
+				return
+			}
+		}
+		e.HandlerFunc.ServeHTTP(rw, r.WithContext(ctx))
+		return
 	}
 	http.NotFound(w, r)
 }
@@ -46,8 +73,8 @@ func (rtr *Router) Middleware(handlerFunc http.HandlerFunc) {
 
 func (rtr *Router) Route(method, path string, handlerFunc http.HandlerFunc) {
 	e := RouterEntry{
-		Method: method,
-		Path: regexp.MustCompile(path),
+		Method:      method,
+		Path:        regexp.MustCompile(path),
 		HandlerFunc: handlerFunc,
 	}
 	rtr.routes = append(rtr.routes, e)

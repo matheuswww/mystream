@@ -45,8 +45,10 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	var fileHash string
 	var wg sync.WaitGroup
-	defer conn.Close()
-	defer delete(beingProcessed, fileHash)
+	defer func() {
+		delete(beingProcessed, fileHash)
+		conn.Close()
+	}()
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {

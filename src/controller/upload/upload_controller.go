@@ -21,4 +21,5 @@ type UploadController interface {
 	GetLastChunk(w http.ResponseWriter, r *http.Request)
 	GetFfmpegProgress(w http.ResponseWriter, r *http.Request)
 	RetryFfmpeg(w http.ResponseWriter, r *http.Request)
+	GetStatus(w http.ResponseWriter, r *http.Request)
 }

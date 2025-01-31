@@ -22,4 +22,5 @@ type UploadService interface {
 	GetLastChunk(getLastChunkRequest upload_request.FileHash) (string, *rest_err.RestErr)
 	GetFfmpegProgress(fileHash string, conn *websocket.Conn)
 	RetryFfmpeg(fileHash string) *rest_err.RestErr
+	GetStatus(fileHash string, beingProcessed map[string]bool) (string, *rest_err.RestErr)
 }

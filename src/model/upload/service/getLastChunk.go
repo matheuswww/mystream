@@ -12,9 +12,7 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-
 func (us *uploadService) GetLastChunk(getLastChunkRequest upload_request.FileHash) (string, *rest_err.RestErr) {
-	logger.Log("Init GetLastChunk")
 	path,err := filepath.Abs("upload")
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying get absolute path for upload: %v", err))

@@ -14,6 +14,7 @@ func InitUploadRoutes(r *router.Router, db *sql.DB) {
 	r.Route("GET", "/upload/uploadFile", controller.UploadFile)
 	r.Route("GET", "/upload/getLastChunk", controller.GetLastChunk)
 	r.Route("GET", "/upload/getFfmpegProgress", controller.GetFfmpegProgress)
+	r.Route("GET", "/upload/getStatus", controller.GetStatus)
 	r.Route("PATCH", "/upload/retryFfmpeg", controller.RetryFfmpeg)
 }
 

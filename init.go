@@ -5,19 +5,20 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/matheuswww/mystream/src/ffmpeg"
 	"github.com/matheuswww/mystream/src/logger"
 )
 
-func init() {
+func checkUploads() {
 	dir := "upload"
 	subdirs, err := os.ReadDir(dir)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying ReadDir: %v", err))
 		return
 	}
-
+	var wg sync.WaitGroup
 	for _, entry := range subdirs {
 		if entry.IsDir() {
 			subdirPath := filepath.Join(dir, entry.Name())
@@ -35,8 +36,13 @@ func init() {
 				return nil
 			})
 			if fileHash != "" && filePath != "" {
-				ffmpeg.SaveVideo(dir, filePath, fileHash, nil)
+				wg.Add(1)
+				go func ()  {
+					defer wg.Done()
+					ffmpeg.SaveVideo(dir, filePath, fileHash, nil)
+				}()
 			}
 		}
 	}
+	wg.Wait()
 }

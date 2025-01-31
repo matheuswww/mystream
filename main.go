@@ -13,6 +13,7 @@ import (
 func main() {
 	fmt.Println("App Running!!!")
 	initEnv()
+
 	r := &router.Router{}
 	r.Middleware(middleware)
 	routes.InitRoutes(r, nil)

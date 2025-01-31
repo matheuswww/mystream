@@ -12,7 +12,7 @@ func (us *uploadService) GetFfmpegProgress(fileHash string, conn *websocket.Conn
 	logger.Log("Init NewFfmpegSession")
 	err := ffmpeg.UpdateConn(fileHash, conn)
 	if err != nil {
-		restErr := rest_err.NewInternalServerError("arquivo não encontrado")
+		restErr := rest_err.NewBadRequestError("file not processing")
 		upload_controller_util.SendWsRes(restErr, conn)
 		conn.Close()
 	}

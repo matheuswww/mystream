@@ -44,7 +44,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 		var uploadRequest upload_request.UploadFile
 		if err := json.Unmarshal(msg, &uploadRequest); err != nil {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
-			restErr := rest_err.NewBadRequestError("campos inválidos")
+			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			break
@@ -54,7 +54,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if (folder && !tempFolder && !file) || (folder && file) {
-			restErr := rest_err.NewBadRequestError("arquvio já enviado")
+			restErr := rest_err.NewBadRequestError("file was already send")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			break

@@ -41,7 +41,7 @@ func (uc *uploadController) GetFfmpegProgress(w http.ResponseWriter, r *http.Req
 		var fileHash upload_request.FileHash
 		if err := json.Unmarshal(msg, &fileHash); err != nil {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
-			restErr := rest_err.NewBadRequestError("campos inválidos")
+			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			return

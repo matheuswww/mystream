@@ -11,7 +11,6 @@ var ExpToken = time.Minute*60
 var ExpRefreshToken = time.Hour*24*2
 
 type UserClaims struct {
-	Id 		string `json:"id"`
 	Email string `json:"email"`
 	jwt.StandardClaims
 }

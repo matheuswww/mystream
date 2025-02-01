@@ -1,13 +1,15 @@
 package file_routes
 
 import (
+	"github.com/gin-gonic/gin"
 	file_controller "github.com/matheuswww/mystream/src/controller/video"
-	"github.com/matheuswww/mystream/src/router"
 )
 
-func InitFileRoutes(r *router.Router) {
+func InitFileRoutes(r *gin.Engine) {
 	controller := getFileController()
-	r.Route("GET", "/file", controller.ServeFile)
+	file := r.Group("/file")
+	file.Use(controller.ServeFile)
+	r.Static("/file", "../upload")
 }
 
 func getFileController() file_controller.FileController {

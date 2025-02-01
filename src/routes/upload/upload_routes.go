@@ -3,19 +3,20 @@ package upload_routes
 import (
 	"database/sql"
 
+	"github.com/gin-gonic/gin"
 	upload_controller "github.com/matheuswww/mystream/src/controller/upload"
 	upload_repository "github.com/matheuswww/mystream/src/model/upload/repository"
 	upload_service "github.com/matheuswww/mystream/src/model/upload/service"
-	"github.com/matheuswww/mystream/src/router"
 )
 
-func InitUploadRoutes(r *router.Router, db *sql.DB) {
+func InitUploadRoutes(r *gin.Engine, db *sql.DB) {
 	controller := getUploadController(db)
-	r.Route("GET", "/upload/uploadFile", controller.UploadFile)
-	r.Route("GET", "/upload/getLastChunk", controller.GetLastChunk)
-	r.Route("GET", "/upload/getFfmpegProgress", controller.GetFfmpegProgress)
-	r.Route("GET", "/upload/getStatus", controller.GetStatus)
-	r.Route("PATCH", "/upload/retryFfmpeg", controller.RetryFfmpeg)
+	upload := r.Group("/upload")
+	upload.GET("/uploadFile", controller.UploadFile)
+	upload.GET("/getLastChunk", controller.GetLastChunk)
+	upload.GET("/getFfmpegProgress", controller.GetFfmpegProgress)
+	upload.GET("/getStatus", controller.GetStatus)
+	upload.PATCH("/retryFfmpeg", controller.RetryFfmpeg)
 }
 
 func getUploadController(db *sql.DB) upload_controller.UploadController {

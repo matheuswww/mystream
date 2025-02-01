@@ -2,25 +2,26 @@ package upload_controller
 
 import (
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
-	"github.com/matheuswww/mystream/src/router"
 )
 
-func (uc *uploadController) GetLastChunk(w http.ResponseWriter, r *http.Request) {
+func (uc *uploadController) GetLastChunk(c *gin.Context) {
 	logger.Log("Init GetLastChunk")
 	var getLastChunkRequest upload_request.FileHash
-	if err := router.BindJson(r.Body, &getLastChunkRequest); err != nil {
+	if err := c.ShouldBindJSON(&getLastChunkRequest); err != nil {
 		restErr := rest_err.NewBadRequestError("invalid fields")
-		router.SendResponse(w, restErr, restErr.Code)
+		c.JSON(restErr.Code, restErr)
 		return
 	}
 	fileName, restErr := uc.uploadService.GetLastChunk(getLastChunkRequest)
 	if restErr != nil {
-		router.SendResponse(w, restErr, restErr.Code)
+		c.JSON(restErr.Code, restErr)
 		return
 	}
-	router.SendResponse(w, struct{ Chunk string }{ Chunk: fileName }, http.StatusOK)
+	c.JSON(http.StatusOK, struct{ Chunk string }{ Chunk: fileName })
 }
 

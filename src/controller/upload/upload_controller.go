@@ -1,8 +1,7 @@
 package upload_controller
 
 import (
-	"net/http"
-
+	"github.com/gin-gonic/gin"
 	upload_service "github.com/matheuswww/mystream/src/model/upload/service"
 )
 
@@ -17,9 +16,9 @@ type uploadController struct {
 }
 
 type UploadController interface {
-	UploadFile(w http.ResponseWriter, r *http.Request)
-	GetLastChunk(w http.ResponseWriter, r *http.Request)
-	GetFfmpegProgress(w http.ResponseWriter, r *http.Request)
-	RetryFfmpeg(w http.ResponseWriter, r *http.Request)
-	GetStatus(w http.ResponseWriter, r *http.Request)
+	UploadFile(c *gin.Context)
+	GetLastChunk(c *gin.Context)
+	GetFfmpegProgress(c *gin.Context)
+	RetryFfmpeg(c *gin.Context)
+	GetStatus(c *gin.Context)
 }

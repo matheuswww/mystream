@@ -1,7 +1,7 @@
 package upload_controller
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,12 +9,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	upload_controller_util "github.com/matheuswww/mystream/src/controller/upload/util"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
-	"github.com/matheuswww/mystream/src/router"
 )
 
 var beingProcessed map[string]bool = make(map[string]bool)
@@ -26,7 +26,7 @@ func GetBeingProcessed(fileHash string) bool {
 	return false
 }
 
-func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
+func (uc *uploadController) UploadFile(c *gin.Context) {
 	logger.Log("Init UploadFile Controller")
 	var upgrader = websocket.Upgrader {
 		CheckOrigin: func(r *http.Request) bool {
@@ -35,7 +35,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	var conn *websocket.Conn
 	var err error
-	conn, err = upgrader.Upgrade(w, r, nil)
+	conn, err = upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying Upgrade: %v", err))
 		restErr := rest_err.NewInternalServerError("server error")
@@ -56,7 +56,7 @@ func (uc *uploadController) UploadFile(w http.ResponseWriter, r *http.Request) {
 			break 
 		}
 		var uploadRequest upload_request.UploadFile
-		if err := router.BindJson(bytes.NewReader(msg), &uploadRequest); err != nil {
+		if err := json.Unmarshal([]byte(msg), &fileHash); err != nil || uploadRequest.Chunks == nil || uploadRequest.FileHash == "" || uploadRequest.Filename == "" {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
 			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)

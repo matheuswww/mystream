@@ -1,28 +1,27 @@
 package upload_controller
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	upload_controller_util "github.com/matheuswww/mystream/src/controller/upload/util"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
-	"github.com/matheuswww/mystream/src/router"
 )
 
-func (uc *uploadController) GetFfmpegProgress(w http.ResponseWriter, r *http.Request) {
-	logger.Log("Init GetFfmpegProgress")
-	defer r.Body.Close()  
+func (uc *uploadController) GetFfmpegProgress(c *gin.Context) {
+	logger.Log("Init GetFfmpegProgress") 
 	var upgrader = websocket.Upgrader {
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying Upgrade: %v", err))
 		restErr := rest_err.NewInternalServerError("server error")
@@ -40,7 +39,7 @@ func (uc *uploadController) GetFfmpegProgress(w http.ResponseWriter, r *http.Req
 			break 
 		}
 		var fileHash upload_request.FileHash
-		if err := router.BindJson(bytes.NewReader(msg), &fileHash); err != nil {
+		if err := json.Unmarshal([]byte(msg), &fileHash); err != nil || fileHash.FileHash == "" {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
 			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)

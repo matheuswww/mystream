@@ -1,13 +1,15 @@
 package file_controller
 
-import "net/http"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func NewFileoController() FileController {
 	return &fileController{}
 }
 
 type FileController interface {
-	ServeFile(w http.ResponseWriter, r *http.Request)
+	ServeFile(c *gin.Context)
 }
 
 type fileController struct {}

@@ -5,9 +5,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	db "github.com/matheuswww/mystream/src/configuration/sql"
-	"github.com/matheuswww/mystream/src/router"
 	"github.com/matheuswww/mystream/src/routes"
 )
 
@@ -15,8 +16,8 @@ func main() {
 	fmt.Println("App Running!!!")
 	initEnv()
 	db := db.NewSql()
-	r := &router.Router{}
-	r.Middleware(middleware)
+	r := gin.Default()
+	r.Use(cors.Default())
 	routes.InitRoutes(r, db)
 	http.ListenAndServe(":8080", r)
 }
@@ -28,15 +29,12 @@ func initEnv() {
 	}
 }
 
-func middleware(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "OPTIONS" {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "PATCH, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "PATCH")
+func configCors(r *gin.Engine) {
+	r.Use(cors.New(cors.Config{
+    AllowOrigins:     []string{"http://127.0.0.1:5000"},
+    AllowMethods:     []string{"GET", "POST", "PATCH", "OPTIONS"},
+    AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+    ExposeHeaders:    []string{"Content-Length"},
+    AllowCredentials: true,
+	}))
 }

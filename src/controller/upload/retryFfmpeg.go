@@ -3,24 +3,24 @@ package upload_controller
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
-	"github.com/matheuswww/mystream/src/router"
 )
 
-func (uc *uploadController) RetryFfmpeg(w http.ResponseWriter, r *http.Request) {
+func (uc *uploadController) RetryFfmpeg(c *gin.Context) {
 	logger.Log("Init RetryFfmpeg")
 	var retryFfmpeg upload_request.FileHash
-	if err := router.BindJson(r.Body, &retryFfmpeg); err != nil {
+	if err := c.ShouldBindJSON(&retryFfmpeg); err != nil {
 		restErr := rest_err.NewBadRequestError("invalid fields")
-		router.SendResponse(w, restErr, restErr.Code)
+		c.JSON(restErr.Code, restErr)
 		return
 	}
 	restErr := uc.uploadService.RetryFfmpeg(retryFfmpeg.FileHash)
 	if restErr != nil {
-		router.SendResponse(w, restErr, restErr.Code)
+		c.JSON(restErr.Code, restErr)
 		return
 	}
-	router.SendResponse(w, struct{ Message string }{ Message: "success" }, http.StatusOK)
+	c.JSON(http.StatusOK, struct{ Message string }{ Message: "success" })
 }

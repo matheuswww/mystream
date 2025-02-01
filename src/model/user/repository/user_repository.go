@@ -11,7 +11,8 @@ func NewUserRepository(sql *sql.DB) UserRepository {
 }
 
 type UserRepository interface {
-	Signup(id, email, name, password string) *rest_err.RestErr 
+	Signup(id, email, name, password string) *rest_err.RestErr
+	Signin(email, password string) (string, *rest_err.RestErr)
 }
 
 type userRepository struct {

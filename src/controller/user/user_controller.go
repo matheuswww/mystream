@@ -14,7 +14,8 @@ func NewUserController(user_service user_service.UserService) UserController {
 }
 
 type UserController interface {
-	Signup(c *gin.Context) 
+	Signup(c *gin.Context)
+	Signin(c *gin.Context)
 }
 
 type userController struct {

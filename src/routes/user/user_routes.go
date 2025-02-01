@@ -13,6 +13,7 @@ func InitUserRoutes(r *gin.Engine, sql *sql.DB) {
 	controller := getUserController(sql)
 	user := r.Group("/user")
   user.POST("/signup", controller.Signup)
+	user.POST("/signin", controller.Signin)
 }
 
 func getUserController(sql *sql.DB) user_controller.UserController {

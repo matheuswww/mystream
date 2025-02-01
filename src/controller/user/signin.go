@@ -22,5 +22,5 @@ func (uc *userController) Signin(c *gin.Context) {
 		c.JSON(restErr.Code, restErr)
 		return
 	}
-	c.JSON(http.StatusCreated, struct{Token string}{ Token: token })
+	c.JSON(http.StatusCreated, token)
 }

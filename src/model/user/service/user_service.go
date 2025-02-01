@@ -3,6 +3,7 @@ package user_service
 import (
 	"time"
 
+	user_response "github.com/matheuswww/mystream/src/controller/model/user/response"
 	user_repository "github.com/matheuswww/mystream/src/model/user/repository"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
@@ -16,8 +17,8 @@ func NewUserService(userRepository user_repository.UserRepository) UserService {
 var expToken = time.Minute*60
 
 type UserService interface {
-	Signup(email, name, password string) (string, *rest_err.RestErr)
-	Signin(email, password string) (string, *rest_err.RestErr)
+	Signup(email, name, password string) (*user_response.Token, *rest_err.RestErr)
+	Signin(email, password string) (*user_response.Token, *rest_err.RestErr)
 }
 
 type userService struct {

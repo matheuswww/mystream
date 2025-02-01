@@ -16,20 +16,22 @@ func (us *userService) Signin(email, password string) (*user_response.Token, *re
 	if restErr != nil {
 		return nil, restErr
 	}
-	standardClaims := jwt.StandardClaims{
-		IssuedAt: time.Now().Unix(),
-		ExpiresAt: time.Now().Add(expToken).Unix(),
-	}
 	token, err := jwt_service.NewAccessToken(jwt_service.UserClaims{
 		Id: id,
 		Email: email,
-		StandardClaims: standardClaims,
+		StandardClaims: jwt.StandardClaims{
+			IssuedAt: time.Now().Unix(),
+			ExpiresAt: time.Now().Add(jwt_service.ExpToken).Unix(),
+		},
 	})
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying NewAccessToken: %v", err))
 		return nil, rest_err.NewInternalServerError("server error")
 	}
-	refreshToken, err := jwt_service.NewRefreshToken(standardClaims)
+	refreshToken, err := jwt_service.NewRefreshToken(jwt.StandardClaims{
+		IssuedAt: time.Now().Unix(),
+		ExpiresAt: time.Now().Add(jwt_service.ExpRefreshToken).Unix(),
+	},)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying NewRefreshToken: %v", err))
 		return nil, rest_err.NewInternalServerError("server error")

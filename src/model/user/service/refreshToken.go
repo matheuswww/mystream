@@ -11,10 +11,16 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-func (us *userService) Signin(email, password string) (*user_response.Token, *rest_err.RestErr) {
-	id,restErr := us.user_repository.Signin(email, password)
+func (us *userService) RefreshToken(refreshToken string) (*user_response.Token, *rest_err.RestErr) {
+	refreshClaims := jwt_service.ParseRefreshToken(refreshToken)
+	if refreshClaims == nil || refreshClaims.Valid() != nil {
+		logger.Error(fmt.Sprintf("Error trying ParseRefreshToken: invalid claims"))
+		return nil, rest_err.NewBadRequestError("invalid refresh token")
+	}
+	id := refreshClaims.Subject
+	email, restErr := us.user_repository.GetEmailById(id)
 	if restErr != nil {
-		return nil, restErr
+		return nil,restErr
 	}
 	token, err := jwt_service.NewAccessToken(jwt_service.UserClaims{
 		Email: email,
@@ -28,7 +34,7 @@ func (us *userService) Signin(email, password string) (*user_response.Token, *re
 		logger.Error(fmt.Sprintf("Error trying NewAccessToken: %v", err))
 		return nil, rest_err.NewInternalServerError("server error")
 	}
-	refreshToken, err := jwt_service.NewRefreshToken(jwt.StandardClaims{
+	newRefreshToken, err := jwt_service.NewRefreshToken(jwt.StandardClaims{
 		Subject: id,
 		IssuedAt: time.Now().Unix(),
 		ExpiresAt: time.Now().Add(jwt_service.ExpRefreshToken).Unix(),
@@ -39,6 +45,6 @@ func (us *userService) Signin(email, password string) (*user_response.Token, *re
 	}
 	return &user_response.Token{
 		Token: token,
-		RefreshToken: refreshToken,
+		RefreshToken: newRefreshToken,
 	}, nil
 }

@@ -19,9 +19,9 @@ func (us *userService) Signup(email, name, password string) (*user_response.Toke
 		return nil,restErr
 	}
 	token, err := jwt_service.NewAccessToken(jwt_service.UserClaims{
-		Id: id,
 		Email: email,
 		StandardClaims: jwt.StandardClaims{
+			Subject: id,
 			IssuedAt: time.Now().Unix(),
 			ExpiresAt: time.Now().Add(jwt_service.ExpToken).Unix(),
 		},
@@ -31,6 +31,7 @@ func (us *userService) Signup(email, name, password string) (*user_response.Toke
 		return nil, rest_err.NewInternalServerError("server error")
 	}
 	refreshToken, err := jwt_service.NewRefreshToken(jwt.StandardClaims{
+		Subject: id,
 		IssuedAt: time.Now().Unix(),
 		ExpiresAt: time.Now().Add(jwt_service.ExpRefreshToken).Unix(),
 	},)

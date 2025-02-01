@@ -27,15 +27,29 @@ func NewRefreshToken(claims jwt.StandardClaims) (string, error) {
 }
 
 func ParseAccessToken(accessToken string) *UserClaims {
-	parsedAccessToken, _ := jwt.ParseWithClaims(accessToken, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("TOKEN_SECRET")), nil
-	 })
-	 return parsedAccessToken.Claims.(*UserClaims)
+	})
+	if err != nil || !parsedAccessToken.Valid {
+		return nil
+	}
+	claims, ok := parsedAccessToken.Claims.(*UserClaims)
+	if !ok {
+		return nil
+	}
+	return claims
 }
 
 func ParseRefreshToken(refreshToken string) *jwt.StandardClaims {
-	parsedRefreshToken, _ := jwt.ParseWithClaims(refreshToken, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+	parsedRefreshToken, err := jwt.ParseWithClaims(refreshToken, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("TOKEN_SECRET")), nil
 	})
-	return parsedRefreshToken.Claims.(*jwt.StandardClaims)
+	if err != nil || !parsedRefreshToken.Valid {
+		return nil
+	}
+	claims, ok := parsedRefreshToken.Claims.(*jwt.StandardClaims)
+	if !ok {
+		return nil
+	}
+	return claims
 }

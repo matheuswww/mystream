@@ -2,6 +2,8 @@ package upload_repository
 
 import (
 	"database/sql"
+
+	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
 func NewUploadRepository(db *sql.DB) UploadRepository {
@@ -10,8 +12,10 @@ func NewUploadRepository(db *sql.DB) UploadRepository {
 	}
 }
 
-type UploadRepository interface{}
+type UploadRepository interface {
+	InsertVideo(title, description, fileHash string) *rest_err.RestErr
+}
 
 type uploadRepository struct {
-	db *sql.DB
+	sql *sql.DB
 }

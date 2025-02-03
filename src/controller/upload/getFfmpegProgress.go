@@ -15,7 +15,17 @@ import (
 )
 
 func (uc *uploadController) GetFfmpegProgress(c *gin.Context) {
-	logger.Log("Init GetFfmpegProgress") 
+	logger.Log("Init GetFfmpegProgress")
+	token := c.DefaultQuery("token", "")
+	if token == "" {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	valid := uc.uploadService.CheckToken(token)
+	if !valid {
+		c.Status(http.StatusForbidden)
+		return
+	}
 	var upgrader = websocket.Upgrader {
 		CheckOrigin: func(r *http.Request) bool {
 			return true

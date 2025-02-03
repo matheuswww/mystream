@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS video (
-  id VARCHAR(36),
+  id VARCHAR(36) PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
-  description VARCHAR(255)
+  description VARCHAR(255) NOT NULL,
+  file_hash VARCHAR(64) NOT NULL
 );

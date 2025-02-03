@@ -23,5 +23,6 @@ type UploadService interface {
 	GetFfmpegProgress(fileHash string, conn *websocket.Conn)
 	RetryFfmpeg(fileHash string) *rest_err.RestErr
 	GetStatus(fileHash string, beingProcessed map[string]bool) (string, *rest_err.RestErr)
-	CheckToken(refreshToken string) bool
+	CheckToken(token string) bool
+	InsertVideo(title, description, fileHash string) *rest_err.RestErr
 }

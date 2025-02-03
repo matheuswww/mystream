@@ -28,6 +28,16 @@ func GetBeingProcessed(fileHash string) bool {
 
 func (uc *uploadController) UploadFile(c *gin.Context) {
 	logger.Log("Init UploadFile Controller")
+	token := c.DefaultQuery("token", "")
+	if token == "" {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	valid := uc.uploadService.CheckToken(token)
+	if !valid {
+		c.Status(http.StatusForbidden)
+		return
+	}
 	var upgrader = websocket.Upgrader {
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -56,7 +66,7 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 			break 
 		}
 		var uploadRequest upload_request.UploadFile
-		if err := json.Unmarshal([]byte(msg), &fileHash); err != nil || uploadRequest.Chunks == nil || uploadRequest.FileHash == "" || uploadRequest.Filename == "" {
+		if err := json.Unmarshal(msg, &uploadRequest); err != nil || uploadRequest.Chunks == nil || uploadRequest.FileHash == "" || uploadRequest.Filename == "" || uploadRequest.Title == "" || uploadRequest.Description == "" {
 			logger.Error(fmt.Sprintf("Error trying Unmarshal: %v", err))
 			restErr := rest_err.NewBadRequestError("invalid fields")
 			upload_controller_util.SendWsRes(restErr, conn)
@@ -76,6 +86,12 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 		if fileHash == "" {
 			beingProcessed[uploadRequest.FileHash] = true
 			fileHash = uploadRequest.FileHash
+			restErr := uc.uploadService.InsertVideo(uploadRequest.Title, uploadRequest.Description, fileHash)
+			if restErr != nil {
+				upload_controller_util.SendWsRes(restErr, conn)
+				conn.Close()
+				break
+			}
 		}
 		wg.Add(1)
 		go func() {

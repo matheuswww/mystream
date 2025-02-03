@@ -7,10 +7,12 @@ type Chunk struct {
 }
 
 type UploadFile struct {
-	FileHash string `json:"fileHash"`
-	Filename string `json:"fileName"`
-	TotalChunk int 	`json:"totalChunk"`
-	Chunks []Chunk 	`json:"chunks"`
+	Title 	 		string 	`json:"title"`
+	Description string 	`json:"description"`
+	FileHash 		string 	`json:"fileHash"`
+	Filename 		string 	`json:"fileName"`
+	TotalChunk  int 		`json:"totalChunk"`
+	Chunks 			[]Chunk `json:"chunks" validate:"dive"`
 }
 
 

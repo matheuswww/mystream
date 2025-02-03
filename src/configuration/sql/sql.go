@@ -10,8 +10,6 @@ import (
 	"github.com/matheuswww/mystream/src/logger"
 )
 
-
-
 func NewSql() *sql.DB {
 	user := os.Getenv("SQL_USER")
 	password := os.Getenv("SQL_PASSWORD")

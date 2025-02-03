@@ -12,6 +12,7 @@ import (
 func InitUploadRoutes(r *gin.Engine, db *sql.DB) {
 	controller := getUploadController(db)
 	upload := r.Group("/upload")
+	upload.Use(controller.CheckToken)
 	upload.GET("/uploadFile", controller.UploadFile)
 	upload.GET("/getLastChunk", controller.GetLastChunk)
 	upload.GET("/getFfmpegProgress", controller.GetFfmpegProgress)

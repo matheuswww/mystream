@@ -21,4 +21,5 @@ type UploadController interface {
 	GetFfmpegProgress(c *gin.Context)
 	RetryFfmpeg(c *gin.Context)
 	GetStatus(c *gin.Context)
+	CheckToken(c *gin.Context)
 }

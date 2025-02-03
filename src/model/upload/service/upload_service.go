@@ -25,4 +25,5 @@ type UploadService interface {
 	GetStatus(fileHash string, beingProcessed map[string]bool) (string, *rest_err.RestErr)
 	CheckToken(token string) bool
 	InsertVideo(title, description, fileHash string) *rest_err.RestErr
+	GetVideoByFileHash(fileHash string) *rest_err.RestErr
 }

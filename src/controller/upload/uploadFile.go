@@ -86,11 +86,18 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 		if fileHash == "" {
 			beingProcessed[uploadRequest.FileHash] = true
 			fileHash = uploadRequest.FileHash
-			restErr := uc.uploadService.InsertVideo(uploadRequest.Title, uploadRequest.Description, fileHash)
-			if restErr != nil {
+			restErr := uc.uploadService.GetVideoByFileHash(fileHash)
+			if restErr != nil && restErr.Code != http.StatusNotFound {
 				upload_controller_util.SendWsRes(restErr, conn)
 				conn.Close()
 				break
+			} else if restErr != nil && restErr.Code == http.StatusNotFound {
+				restErr = uc.uploadService.InsertVideo(uploadRequest.Title, uploadRequest.Description, fileHash)
+				if restErr != nil {
+					upload_controller_util.SendWsRes(restErr, conn)
+					conn.Close()
+					break
+				}
 			}
 		}
 		wg.Add(1)

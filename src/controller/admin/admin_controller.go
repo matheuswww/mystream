@@ -13,6 +13,7 @@ func NewAdminController(service admin_service.AdminService) AdminController {
 
 type AdminController interface {
 	Signin(c *gin.Context)
+	RefreshToken(c *gin.Context)
 }
 
 type adminController struct {

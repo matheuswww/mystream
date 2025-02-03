@@ -13,6 +13,7 @@ func InitAdminRouter(r *gin.Engine, sql *sql.DB) {
 	controller := getAdminController(sql)
 	admin := r.Group("/admin")
   admin.POST("/signin", controller.Signin)
+	admin.GET("/refreshToken", controller.RefreshToken)
 }
 
 func getAdminController(sql *sql.DB) admin_controller.AdminController {

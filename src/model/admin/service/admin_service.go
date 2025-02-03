@@ -13,7 +13,8 @@ func NewAdminService(repository admin_repository.AdminRepository) AdminService {
 }
 
 type AdminService interface {
-	Signin(email, password string) (*admin_response.Token, *rest_err.RestErr) 
+	Signin(email, password string) (*admin_response.Token, *rest_err.RestErr)
+	RefreshToken(refreshToken string) (*admin_response.Token, *rest_err.RestErr)
 }
 
 type adminService struct {

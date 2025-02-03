@@ -22,16 +22,16 @@ func GetAdminToken(id, email string) (*admin_response.Token, *rest_err.RestErr) 
 		},
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error trying NewAccessToken: %v", err))
+		logger.Error(fmt.Sprintf("Error trying NewAdminAccessToken: %v", err))
 		return nil, rest_err.NewInternalServerError("server error")
 	}
-	refreshToken, err := jwt_service.NewRefreshToken(jwt.StandardClaims{
+	refreshToken, err := jwt_service.NewAdminRefreshToken(jwt.StandardClaims{
 		Subject: id,
 		IssuedAt: time.Now().Unix(),
 		ExpiresAt: time.Now().Add(jwt_service.ExpRefreshToken).Unix(),
 	},)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error trying NewRefreshToken: %v", err))
+		logger.Error(fmt.Sprintf("Error trying NewAdminRefreshToken: %v", err))
 		return nil, rest_err.NewInternalServerError("server error")
 	}
 	return &admin_response.Token{

@@ -239,10 +239,6 @@ func SaveVideo(uploadPath, filePath, fileHash string, conn *websocket.Conn) erro
 
 	wg.Wait()
 	close(newFrame)
-	err = generateM3U8(fmt.Sprintf("%s/%s", uploadPath, fileHash), fileHash)
-	if err != nil {
-		return err
-	}
 	err = os.Remove(filePath)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying Remove: %v", err))
@@ -358,38 +354,4 @@ func getInfos(fileHash, filePath string, conn *websocket.Conn) (map[int]int, int
 		return nil, 0, 0, 0, err
 	}
 	return chunks, totalFrames*numberResolutions, int(frameRate), duration*float64(numberResolutions), nil
-}
-
-
-func generateM3U8(path, fileHash string) error {
-	filePath := fmt.Sprintf("%s/master.m3u8", path)
-	_, err := os.Create(filePath)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error trying Create file: %v", err))
-		return err
-	}
-	host := os.Getenv("URL")
-	if host == "" {
-		err := errors.New("Error trying get env")
-		logger.Error("Error trying get env")
-		return err
-	}
-	urlFilePath := fmt.Sprintf("%s/file/%s",host, fileHash)
-	m3u8 := `
-	#EXTM3U
-	#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
-	`+urlFilePath+`/360p/video_640x360.m3u8
-	#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=854x480
-	`+urlFilePath+`/480p/video_854x480.m3u8
-	#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=1280x720
-	`+urlFilePath+`/720p/video_1280x720.m3u8
-	#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1920x1080
-	`+urlFilePath+`/1080p/video_1920x1080.m3u8
-	`
-	err = os.WriteFile(filePath, []byte(m3u8), 0755)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error trying WriteFile: %v", err))
-		return err
-	}
-	return nil
 }

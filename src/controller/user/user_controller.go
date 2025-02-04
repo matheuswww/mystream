@@ -14,6 +14,7 @@ func NewUserController(user_service user_service.UserService) UserController {
 }
 
 type UserController interface {
+	GetVideo(c *gin.Context)
 	Signup(c *gin.Context)
 	Signin(c *gin.Context)
 	RefreshToken(c *gin.Context)

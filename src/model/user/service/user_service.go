@@ -16,6 +16,7 @@ type UserService interface {
 	Signup(email, name, password string) (*user_response.Token, *rest_err.RestErr)
 	Signin(email, password string) (*user_response.Token, *rest_err.RestErr)
 	RefreshToken(refreshToken string) (*user_response.Token, *rest_err.RestErr)
+	GetVideo(cursor string) ([]user_response.GetVideo, *rest_err.RestErr)
 }
 
 type userService struct {

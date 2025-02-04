@@ -15,6 +15,7 @@ func InitUserRoutes(r *gin.Engine, sql *sql.DB) {
   user.POST("/signup", controller.Signup)
 	user.POST("/signin", controller.Signin)
 	user.GET("/refreshToken", controller.RefreshToken)
+	user.GET("/getVideo", controller.GetVideo)
 }
 
 func getUserController(sql *sql.DB) user_controller.UserController {

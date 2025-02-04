@@ -17,9 +17,9 @@ func (ur *uploadRepository) GetVideoByFileHash(fileHash string) *rest_err.RestEr
 	err := ur.sql.QueryRowContext(ctx, query, fileHash).Scan(&count)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying QueryRowContext: %v", err))
-		return nil
+		return rest_err.NewInternalServerError("sever error")
 	}
-	if count != 0 {
+	if count == 0 {
 		return rest_err.NewNotFoundError("video not found")
 	}
 	return nil

@@ -16,6 +16,7 @@ func InitUploadRoutes(r *gin.Engine, db *sql.DB) {
 	upload.GET("/getStatus", controller.CheckToken, controller.GetStatus)
 	upload.PATCH("/retryFfmpeg", controller.CheckToken, controller.RetryFfmpeg)
 	upload.PATCH("/updateVideo", controller.CheckToken, controller.UpdateVideo)
+	upload.GET("/getVideo", controller.CheckToken, controller.GetVideo)
 	
 	upload.GET("/uploadFile", controller.UploadFile)
 	upload.GET("/getFfmpegProgress", controller.GetFfmpegProgress)

@@ -1,16 +1,17 @@
-package user_repository
+package upload_repository
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	user_response "github.com/matheuswww/mystream/src/controller/model/user/response"
+	admin_response "github.com/matheuswww/mystream/src/controller/model/admin/response"
 	"github.com/matheuswww/mystream/src/logger"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-func (ur *userRepository) GetVideo(cursor string) ([]user_response.GetVideo, *rest_err.RestErr) {
+
+func (ur *uploadRepository) GetVideo(cursor string) ([]admin_response.GetVideo, *rest_err.RestErr) {
 	ctx,cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	var args []any
@@ -21,13 +22,13 @@ func (ur *userRepository) GetVideo(cursor string) ([]user_response.GetVideo, *re
 	} else {
 		query += " WHERE uploaded = TRUE"
 	}
-	query += " ORDER BY created_at DESC LIMIT 10"
+	query += " ORDER BY created_at DESC LIMIT 10" 
 	rows, err := ur.sql.QueryContext(ctx, query, args...)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying QueryContext: %v", err))
 		return nil,rest_err.NewInternalServerError("server error")
 	}
-	var video []user_response.GetVideo
+	var video []admin_response.GetVideo
 	defer rows.Close()
 	for rows.Next() {
 		var id, title, description, file_hash, created_at string
@@ -36,7 +37,7 @@ func (ur *userRepository) GetVideo(cursor string) ([]user_response.GetVideo, *re
 			logger.Error(fmt.Sprintf("Error trying Scan: %v", err))
 			return nil,rest_err.NewInternalServerError("server error")
 		}
-		video = append(video, user_response.GetVideo{
+		video = append(video, admin_response.GetVideo{
 			Id: id,
 			Title: title,
 			Description: description,

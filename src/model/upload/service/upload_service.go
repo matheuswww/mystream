@@ -2,6 +2,7 @@ package upload_service
 
 import (
 	"github.com/gorilla/websocket"
+	admin_response "github.com/matheuswww/mystream/src/controller/model/admin/response"
 	upload_request "github.com/matheuswww/mystream/src/controller/model/upload/request"
 	upload_repository "github.com/matheuswww/mystream/src/model/upload/repository"
 	rest_err "github.com/matheuswww/mystream/src/restErr"
@@ -27,4 +28,5 @@ type UploadService interface {
 	InsertVideo(title, description, fileHash string) *rest_err.RestErr
 	GetVideoByFileHash(fileHash string) (*upload_repository.Video ,*rest_err.RestErr)
 	UpdateVideo(id, title, description string, uploaded *bool, beingProcessed map[string]bool) *rest_err.RestErr
+	GetVideo(cursor string) ([]admin_response.GetVideo, *rest_err.RestErr)
 }

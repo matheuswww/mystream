@@ -16,6 +16,7 @@ type uploadController struct {
 }
 
 type UploadController interface {
+	GetVideo(c *gin.Context)
 	UploadFile(c *gin.Context)
 	GetLastChunk(c *gin.Context)
 	GetFfmpegProgress(c *gin.Context)

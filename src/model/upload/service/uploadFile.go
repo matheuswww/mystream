@@ -71,8 +71,8 @@ func (us *uploadService) UploadFile(conn *websocket.Conn, uploadFile upload_requ
 		if chunk.Chunk == uploadFile.TotalChunk - 1 {
 			err := combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash, conn)
 			if err == nil {
-				updated := true
-				us.uploadRepository.UpdateVideo(uploadFile.FileHash, "", "", &updated)
+				uploaded := true
+				us.uploadRepository.UpdateVideo(uploadFile.FileHash, "", "", &uploaded)
 			}
 		}
 	}	

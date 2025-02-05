@@ -1,6 +1,7 @@
 # Mystreaming
 
 ## Project Overview  
+
 Before presenting the project, let's understand **HLS** and its advantages.  
 
 The **HLS (HTTP Live Streaming)** protocol delivers video over **HTTP** by dividing it into small segments and using an **`.m3u8`** playlist for continuous playback. Its main advantage is **adaptive bitrate (ABR) streaming**, which adjusts the quality based on the user's connection.  
@@ -14,6 +15,9 @@ The **HLS (HTTP Live Streaming)** protocol delivers video over **HTTP** by divid
 
 - **Chunked File Upload**  
   - Enables **segmented video uploads**, allowing users to resume the upload **at any time** if interrupted.  
+
+- **Concurrency & Performance**  
+  - **Goroutines**, **WaitGroups**, and **Channels** are used to handle **FFmpeg processing** and **video uploads efficiently**.  
 
 - **Authentication & Database**  
   - Implements **administrator and user authentication**.  

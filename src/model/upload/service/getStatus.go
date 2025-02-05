@@ -10,6 +10,12 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
+var BeingProcessed = "video is being processed"
+var NotSent = "the video was not sent, call getLastChunk and send all chunks"
+var NotBeingProcessed = "video was not being processed, call retryFfmpeg"
+var NotSavedInDb = "video was processed, but the status was not saved in the db, call updateVideo"
+var Processed = "video processed"
+
 func (us *uploadService) GetStatus(fileHash string, beingProcessed map[string]bool) (string, *rest_err.RestErr) {
 	path,err := filepath.Abs("upload")
 	if err != nil {
@@ -45,19 +51,27 @@ func (us *uploadService) GetStatus(fileHash string, beingProcessed map[string]bo
 	if hasTemp {
 		val := beingProcessed[fileHash]
 		if val {
-			msg = "video is being processed"
+			msg = BeingProcessed
 		} else {			
-			msg = "the video was not sent, call getLastChunk and send all chunks"
+			msg = NotSent
 		}
 	} else if hasMP4 {
 		val := ffmpeg.GetBeingProcessed(fileHash)
 		if val {
-			msg = "video is being processed"
+			msg = BeingProcessed
 		} else {
-			msg = "video was not being processed, call retryFfmpeg"
+			msg = NotBeingProcessed
 		}
 	} else {
-		msg = "video processed"
+		video,restErr := us.uploadRepository.GetVideoByFileHash(fileHash)
+		if restErr != nil {
+			return "", restErr
+		}
+		if (!video.Uploaded) {
+			msg = NotSavedInDb
+		} else {				
+			msg = Processed
+		}
 	}
 
 	return msg,nil

@@ -22,4 +22,5 @@ type UploadController interface {
 	RetryFfmpeg(c *gin.Context)
 	GetStatus(c *gin.Context)
 	CheckToken(c *gin.Context)
+	UpdateVideo(c *gin.Context)
 }

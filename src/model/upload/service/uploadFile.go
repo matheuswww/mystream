@@ -15,7 +15,7 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-func (us *uploadService) UploadFile(conn *websocket.Conn, uploadFile upload_request.UploadFile) {
+func (us *uploadService) UploadFile(conn *websocket.Conn, uploadFile upload_request.UploadFile, id string) {
 	path,err := filepath.Abs("upload")
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying get abs path for upload: %v", err))
@@ -69,12 +69,16 @@ func (us *uploadService) UploadFile(conn *websocket.Conn, uploadFile upload_requ
 			return
 		}
 		if chunk.Chunk == uploadFile.TotalChunk - 1 {
-			combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash, conn)
+			err := combineChunk(uploadFile.TotalChunk, uploadFile.Filename, uploadFile.FileHash, conn)
+			if err == nil {
+				updated := true
+				us.uploadRepository.UpdateVideo(uploadFile.FileHash, "", "", &updated)
+			}
 		}
 	}	
 }
 
-func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Conn) {
+func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Conn) error {
 	logger.Log("Init combineChunk")
 	path,err := filepath.Abs("upload")
 	if err != nil {
@@ -82,7 +86,7 @@ func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Con
 		restErr := rest_err.NewInternalServerError("server error")
 		upload_controller_util.SendWsRes(restErr, conn)
 		conn.Close()
-		return 
+		return err
 	}
 	filePath := fmt.Sprintf("%s/%s/%s", path, fileHash, fileName)
 	file, err := os.Create(filePath)
@@ -91,29 +95,34 @@ func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Con
 		restErr := rest_err.NewInternalServerError("server error")
 		upload_controller_util.SendWsRes(restErr, conn)
 		conn.Close()
-		return
+		return err
 	}
 	defer file.Close()
 
+	var cerr error
 	dir := fmt.Sprintf("%s/%s/temp", path, fileHash)
 	for i := 0; i < totalChunk; i++ {
 		chunkFileName := fmt.Sprintf("/%s/chunk%d", dir, i)
-		chukData, err := os.ReadFile(chunkFileName)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error trying ReadFile: %v", err))
+		var chunkData []byte
+		chunkData, cerr = os.ReadFile(chunkFileName)
+		if cerr != nil {
+			logger.Error(fmt.Sprintf("Error trying ReadFile: %v", cerr))
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			break
 		}
-		_, err = file.Write(chukData)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error trying Write file: %v", err))
+		_, cerr = file.Write(chunkData)
+		if cerr != nil {
+			logger.Error(fmt.Sprintf("Error trying Write file: %v", cerr))
 			restErr := rest_err.NewInternalServerError("server error")
 			upload_controller_util.SendWsRes(restErr, conn)
 			conn.Close()
 			break
 		}
+	}
+	if cerr != nil {
+		return cerr
 	}
 	res := struct{ Message string }{
 		Message: "sucesso",
@@ -122,12 +131,14 @@ func combineChunk(totalChunk int, fileName, fileHash string, conn *websocket.Con
 	err = os.RemoveAll(dir)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error trying RemoveAll: %v", err))
+		return err
 	}
 	err = ffmpeg.SaveVideo(path, filePath, fileHash, conn)
 	if err != nil {
 		restErr := rest_err.NewInternalServerError("server error")
 		upload_controller_util.SendWsRes(restErr, conn)
 		conn.Close()
-		return
+		return err
 	}
+	return nil
 }

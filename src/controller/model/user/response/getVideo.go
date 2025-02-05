@@ -13,5 +13,5 @@ type GetVideo struct {
 	Description string `json:"description"`
 	Url 				Url 	 `json:"url"`
 	Cursor	 		string `json:"cursor"`
-	FileHash    string
+	FileHash    string `json:"file_hash"`
 }

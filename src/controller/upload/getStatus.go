@@ -17,7 +17,7 @@ func (uc *uploadController) GetStatus(c *gin.Context) {
 		c.JSON(restErr.Code, restErr)
 		return
 	}
-	status,restErr := uc.uploadService.GetStatus(getStatus.FileHash, beingProcessed)
+	status,restErr := uc.uploadService.GetStatus(getStatus.FileHash, BeingProcessed)
 	if restErr != nil {
 		c.JSON(restErr.Code, restErr)
 		return

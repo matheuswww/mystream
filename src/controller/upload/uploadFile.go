@@ -17,10 +17,10 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-var beingProcessed map[string]bool = make(map[string]bool)
+var BeingProcessed map[string]bool = make(map[string]bool)
 
 func GetBeingProcessed(fileHash string) bool {
-	if _,v := beingProcessed[fileHash]; v {
+	if _,v := BeingProcessed[fileHash]; v {
 		return true
 	}
 	return false
@@ -53,10 +53,10 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 		conn.Close()
 		return
 	}
-	var fileHash string
+	var fileHash, id string
 	var wg sync.WaitGroup
 	defer func() {
-		delete(beingProcessed, fileHash)
+		delete(BeingProcessed, fileHash)
 		conn.Close()
 	}()
 	for {
@@ -84,15 +84,15 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 			break
 		}
 		if fileHash == "" {
-			beingProcessed[uploadRequest.FileHash] = true
+			BeingProcessed[uploadRequest.FileHash] = true
 			fileHash = uploadRequest.FileHash
-			restErr := uc.uploadService.GetVideoByFileHash(fileHash)
+			_,restErr := uc.uploadService.GetVideoByFileHash(fileHash)
 			if restErr != nil && restErr.Code != http.StatusNotFound {
 				upload_controller_util.SendWsRes(restErr, conn)
 				conn.Close()
 				break
 			} else if restErr != nil && restErr.Code == http.StatusNotFound {
-				restErr = uc.uploadService.InsertVideo(uploadRequest.Title, uploadRequest.Description, fileHash)
+				restErr := uc.uploadService.InsertVideo(uploadRequest.Title, uploadRequest.Description, fileHash)
 				if restErr != nil {
 					upload_controller_util.SendWsRes(restErr, conn)
 					conn.Close()
@@ -103,7 +103,7 @@ func (uc *uploadController) UploadFile(c *gin.Context) {
 		wg.Add(1)
 		go func() {
 			wg.Done()
-			uc.uploadService.UploadFile(conn, uploadRequest)
+			uc.uploadService.UploadFile(conn, uploadRequest, id)
 		}()
 	}
 	wg.Wait()

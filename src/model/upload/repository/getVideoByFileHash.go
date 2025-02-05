@@ -2,6 +2,7 @@ package upload_repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -9,18 +10,34 @@ import (
 	rest_err "github.com/matheuswww/mystream/src/restErr"
 )
 
-func (ur *uploadRepository) GetVideoByFileHash(fileHash string) *rest_err.RestErr {
+type Video struct {
+	Id          string
+	Title 			string
+	Description string
+	FileHash    string
+	Uploaded    bool
+}
+
+func (ur *uploadRepository) GetVideoByFileHash(fileHash string) (*Video, *rest_err.RestErr) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	query := "SELECT COUNT(*) FROM video WHERE file_hash = $1"
-	var count int
-	err := ur.sql.QueryRowContext(ctx, query, fileHash).Scan(&count)
+	
+	query := "SELECT id, title, description, uploaded FROM video WHERE file_hash = $1"
+	var id, title, description string
+	var uploaded bool
+	err := ur.sql.QueryRowContext(ctx, query, fileHash).Scan(&id, &title, &description, &uploaded)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, rest_err.NewNotFoundError("video not found")
+		}
 		logger.Error(fmt.Sprintf("Error trying QueryRowContext: %v", err))
-		return rest_err.NewInternalServerError("sever error")
+		return nil, rest_err.NewInternalServerError("sever error")
 	}
-	if count == 0 {
-		return rest_err.NewNotFoundError("video not found")
-	}
-	return nil
+	return &Video{
+		id,
+		title,
+		description,
+		fileHash,
+		uploaded,
+	},nil
 }

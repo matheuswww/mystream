@@ -16,8 +16,10 @@ func (ur *userRepository) GetVideo(cursor string) ([]user_response.GetVideo, *re
 	var args []any
 	query := "SELECT id,title,description,file_hash,created_at FROM video"
 	if cursor != "" {
-    query += " WHERE created_at < ?"
+    query += " WHERE created_at < ? AND updated = TRUE"
     args = append(args, cursor)
+	} else {
+		query += " WHERE uploaded = TRUE"
 	}
 	query += " ORDER BY created_at DESC LIMIT 10" 
 	rows, err := ur.sql.QueryContext(ctx, query, args...)

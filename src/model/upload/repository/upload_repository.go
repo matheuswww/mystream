@@ -14,7 +14,8 @@ func NewUploadRepository(db *sql.DB) UploadRepository {
 
 type UploadRepository interface {
 	InsertVideo(title, description, fileHash string) *rest_err.RestErr
-	GetVideoByFileHash(fileHash string) *rest_err.RestErr
+	GetVideoByFileHash(fileHash string) (*Video, *rest_err.RestErr)
+	UpdateVideo(id, title, description string, uploaded *bool) *rest_err.RestErr
 }
 
 type uploadRepository struct {
